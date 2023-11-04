@@ -11,8 +11,6 @@ from model import Generator, Discriminator
 from utils import D_train, G_train, save_models
 
 
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train Normalizing Flow.')
     parser.add_argument("--epochs", type=int, default=100,
@@ -23,6 +21,14 @@ if __name__ == '__main__':
                         help="Size of mini-batches for SGD")
 
     args = parser.parse_args()
+
+        # Check if GPU is available
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+        print('GPU is available')
+    else:
+        device = torch.device("cpu")
+        print('GPU is not available')
 
 
     os.makedirs('chekpoints', exist_ok=True)
@@ -48,11 +54,11 @@ if __name__ == '__main__':
 
     print('Model Loading...')
     mnist_dim = 784
-    G = torch.nn.DataParallel(Generator(g_output_dim = mnist_dim)).cuda()
-    D = torch.nn.DataParallel(Discriminator(mnist_dim)).cuda()
+    G = torch.nn.DataParallel(Generator(g_output_dim = mnist_dim)).to(device)
+    D = torch.nn.DataParallel(Discriminator(mnist_dim)).to(device)
 
 
-    # model = DataParallel(model).cuda()
+    # model = DataParallel(model).to(device)
     print('Model loaded.')
     # Optimizer 
 
