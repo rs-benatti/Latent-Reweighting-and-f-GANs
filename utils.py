@@ -72,3 +72,12 @@ def load_model(G, folder):
         ckpt = torch.load(os.path.join(folder,'G.pth'), map_location=torch.device('cpu'))
     G.load_state_dict({k.replace('module.', ''): v for k, v in ckpt.items()})
     return G
+
+def load_discriminator(D, folder):
+    # Check if GPU is available
+    if torch.cuda.is_available():
+        ckpt = torch.load(os.path.join(folder,'D.pth'))
+    else:
+        ckpt = torch.load(os.path.join(folder,'D.pth'), map_location=torch.device('cpu'))
+    D.load_state_dict({k.replace('module.', ''): v for k, v in ckpt.items()})
+    return D
