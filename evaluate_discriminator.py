@@ -28,8 +28,8 @@ total_real, total_fake = 0, 0
 with torch.no_grad():
     for real_batch, _ in dataloader:
         real_output = discriminator(real_batch.view(-1, 28 * 28))
-        predicted_real = (real_output > 0.5).int()
-        correct_real += (predicted_real == 0).sum().item()
+        predicted_real = real_output.int()
+        correct_real += (predicted_real == 1).sum().item()
         total_real += real_output.size(0)
 
 # Evaluate on fake/generated images
@@ -40,8 +40,9 @@ for i in range(len(dataloader.dataset)):
     image = Image.open(image_path).convert("L")  # Convert to grayscale
     image = transform(image)
     fake_output = discriminator(image.view(-1, 28 * 28))
-    predicted_fake = (fake_output > 0.5).int()
-    correct_fake += (predicted_fake == 1).sum().item()
+    predicted_fake = fake_output.int()
+    if (predicted_fake.item() == 0):
+        correct_fake += 1
     total_fake += fake_output.size(0)
 
 # Calculate accuracy for real and fake images
