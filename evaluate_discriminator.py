@@ -41,6 +41,7 @@ for i in range(len(dataloader.dataset)):
     image = transform(image)
     fake_output = discriminator(image.view(-1, 28 * 28))
     predicted_fake = fake_output.int()
+    print(predicted_fake)
     if (predicted_fake.item() == 0):
         correct_fake += 1
     total_fake += fake_output.size(0)

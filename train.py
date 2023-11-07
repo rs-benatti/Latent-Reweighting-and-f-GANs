@@ -19,6 +19,9 @@ if __name__ == '__main__':
                       help="The learning rate to use for training.")
     parser.add_argument("--batch_size", type=int, default=64, 
                         help="Size of mini-batches for SGD")
+    parser.add_argument("--mnist_size", type=int, default=0, 
+                        help="Size of mini-batches for SGD")
+
 
     args = parser.parse_args()
 
@@ -45,9 +48,18 @@ if __name__ == '__main__':
     test_dataset = datasets.MNIST(root='data/MNIST/', train=False, transform=transform, download=False)
 
 
-    train_loader = torch.utils.data.DataLoader(dataset=train_dataset, 
-                                               batch_size=args.batch_size, shuffle=True)
-    test_loader = torch.utils.data.DataLoader(dataset=test_dataset, 
+    mnist_size = args.mnist_size
+    if mnist_size != 0:
+        mnist_trainset_reduced = torch.utils.data.random_split(train_dataset, [mnist_size, len(train_dataset)-mnist_size])[0] 
+        train_loader = torch.utils.data.DataLoader(mnist_trainset_reduced, batch_size=args.batch_size, shuffle=True)
+        # download test dataset
+        max_mnist_size = mnist_size // 2
+        mnist_testset_reduced = torch.utils.data.random_split(test_dataset, [max_mnist_size, len(test_dataset)-max_mnist_size])[0] 
+        test_loader = torch.utils.data.DataLoader(mnist_testset_reduced, batch_size=args.batch_size, shuffle=True)
+    else:
+        train_loader = torch.utils.data.DataLoader(dataset=train_dataset, 
+                                                   batch_size=args.batch_size, shuffle=True)
+        test_loader = torch.utils.data.DataLoader(dataset=test_dataset, 
                                               batch_size=args.batch_size, shuffle=False)
     print('Dataset Loaded.')
 
