@@ -2,6 +2,14 @@ import torch
 import os
 
 
+# Check if GPU is available
+if torch.cuda.is_available():
+    device = torch.device("cuda")
+    print('GPU is available')
+else:
+    device = torch.device("cpu")
+    print('GPU is not available')
+
 
 def D_train(x, G, D, D_optimizer, criterion):
     #=======================Train the discriminator=======================#
@@ -9,15 +17,15 @@ def D_train(x, G, D, D_optimizer, criterion):
 
     # train discriminator on real
     x_real, y_real = x, torch.ones(x.shape[0], 1)
-    x_real, y_real = x_real.cuda(), y_real.cuda()
+    x_real, y_real = x_real.to(device), y_real.to(device)
 
     D_output = D(x_real)
     D_real_loss = criterion(D_output, y_real)
     D_real_score = D_output
 
     # train discriminator on facke
-    z = torch.randn(x.shape[0], 100).cuda()
-    x_fake, y_fake = G(z), torch.zeros(x.shape[0], 1).cuda()
+    z = torch.randn(x.shape[0], 100).to(device)
+    x_fake, y_fake = G(z), torch.zeros(x.shape[0], 1).to(device)
 
     D_output =  D(x_fake)
     
@@ -26,6 +34,7 @@ def D_train(x, G, D, D_optimizer, criterion):
 
     # gradient backprop & optimize ONLY D's parameters
     D_loss = D_real_loss + D_fake_loss
+    print(f"D_loss = {D_loss}")
     D_loss.backward()
     D_optimizer.step()
         
@@ -36,13 +45,13 @@ def G_train(x, G, D, G_optimizer, criterion):
     #=======================Train the generator=======================#
     G.zero_grad()
 
-    z = torch.randn(x.shape[0], 100).cuda()
-    y = torch.ones(x.shape[0], 1).cuda()
+    z = torch.randn(x.shape[0], 100).to(device)
+    y = torch.ones(x.shape[0], 1).to(device)
                  
     G_output = G(z)
     D_output = D(G_output)
     G_loss = criterion(D_output, y)
-
+    print(f"G_loss = {G_loss}")
     # gradient backprop & optimize ONLY G's parameters
     G_loss.backward()
     G_optimizer.step()
@@ -57,6 +66,19 @@ def save_models(G, D, folder):
 
 
 def load_model(G, folder):
-    ckpt = torch.load(os.path.join(folder,'G.pth'))
+    # Check if GPU is available
+    if torch.cuda.is_available():
+        ckpt = torch.load(os.path.join(folder,'G.pth'))
+    else:
+        ckpt = torch.load(os.path.join(folder,'G.pth'), map_location=torch.device('cpu'))
     G.load_state_dict({k.replace('module.', ''): v for k, v in ckpt.items()})
     return G
+
+def load_discriminator(D, folder):
+    # Check if GPU is available
+    if torch.cuda.is_available():
+        ckpt = torch.load(os.path.join(folder,'D.pth'))
+    else:
+        ckpt = torch.load(os.path.join(folder,'D.pth'), map_location=torch.device('cpu'))
+    D.load_state_dict({k.replace('module.', ''): v for k, v in ckpt.items()})
+    return D

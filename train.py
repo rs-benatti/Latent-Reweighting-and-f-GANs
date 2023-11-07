@@ -11,8 +11,6 @@ from model import Generator, Discriminator
 from utils import D_train, G_train, save_models
 
 
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train Normalizing Flow.')
     parser.add_argument("--epochs", type=int, default=100,
@@ -21,8 +19,19 @@ if __name__ == '__main__':
                       help="The learning rate to use for training.")
     parser.add_argument("--batch_size", type=int, default=64, 
                         help="Size of mini-batches for SGD")
+    parser.add_argument("--mnist_size", type=int, default=0, 
+                        help="Size of mini-batches for SGD")
+
 
     args = parser.parse_args()
+
+        # Check if GPU is available
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+        print('GPU is available')
+    else:
+        device = torch.device("cpu")
+        print('GPU is not available')
 
 
     os.makedirs('chekpoints', exist_ok=True)
@@ -39,20 +48,29 @@ if __name__ == '__main__':
     test_dataset = datasets.MNIST(root='data/MNIST/', train=False, transform=transform, download=False)
 
 
-    train_loader = torch.utils.data.DataLoader(dataset=train_dataset, 
-                                               batch_size=args.batch_size, shuffle=True)
-    test_loader = torch.utils.data.DataLoader(dataset=test_dataset, 
+    mnist_size = args.mnist_size
+    if mnist_size != 0:
+        mnist_trainset_reduced = torch.utils.data.random_split(train_dataset, [mnist_size, len(train_dataset)-mnist_size])[0] 
+        train_loader = torch.utils.data.DataLoader(mnist_trainset_reduced, batch_size=args.batch_size, shuffle=True)
+        # download test dataset
+        max_mnist_size = mnist_size // 2
+        mnist_testset_reduced = torch.utils.data.random_split(test_dataset, [max_mnist_size, len(test_dataset)-max_mnist_size])[0] 
+        test_loader = torch.utils.data.DataLoader(mnist_testset_reduced, batch_size=args.batch_size, shuffle=True)
+    else:
+        train_loader = torch.utils.data.DataLoader(dataset=train_dataset, 
+                                                   batch_size=args.batch_size, shuffle=True)
+        test_loader = torch.utils.data.DataLoader(dataset=test_dataset, 
                                               batch_size=args.batch_size, shuffle=False)
     print('Dataset Loaded.')
 
 
     print('Model Loading...')
     mnist_dim = 784
-    G = torch.nn.DataParallel(Generator(g_output_dim = mnist_dim)).cuda()
-    D = torch.nn.DataParallel(Discriminator(mnist_dim)).cuda()
+    G = torch.nn.DataParallel(Generator(g_output_dim = mnist_dim)).to(device)
+    D = torch.nn.DataParallel(Discriminator(mnist_dim)).to(device)
 
 
-    # model = DataParallel(model).cuda()
+    # model = DataParallel(model).to(device)
     print('Model loaded.')
     # Optimizer 
 
@@ -62,8 +80,8 @@ if __name__ == '__main__':
     criterion = nn.BCELoss() 
 
     # define optimizers
-    G_optimizer = optim.Adam(G.parameters(), lr = args.lr)
-    D_optimizer = optim.Adam(D.parameters(), lr = args.lr)
+    G_optimizer = optim.Adam(G.parameters(), lr = args.lr, betas=(0.5, 0.999))
+    D_optimizer = optim.Adam(D.parameters(), lr = args.lr, betas=(0.5, 0.999))
 
     print('Start Training :')
     
