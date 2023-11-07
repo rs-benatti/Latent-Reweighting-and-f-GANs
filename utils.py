@@ -34,6 +34,7 @@ def D_train(x, G, D, D_optimizer, criterion):
 
     # gradient backprop & optimize ONLY D's parameters
     D_loss = D_real_loss + D_fake_loss
+    print(f"D_loss = {D_loss}")
     D_loss.backward()
     D_optimizer.step()
         
@@ -50,7 +51,7 @@ def G_train(x, G, D, G_optimizer, criterion):
     G_output = G(z)
     D_output = D(G_output)
     G_loss = criterion(D_output, y)
-
+    print(f"G_loss = {G_loss}")
     # gradient backprop & optimize ONLY G's parameters
     G_loss.backward()
     G_optimizer.step()
