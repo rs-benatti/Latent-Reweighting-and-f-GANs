@@ -1,7 +1,6 @@
 import torch
 import os
 
-
 # Check if GPU is available
 if torch.cuda.is_available():
     device = torch.device("cuda")
@@ -11,7 +10,7 @@ else:
     print('GPU is not available')
 
 
-def D_train(x, G, D, D_optimizer, criterion):
+def D_train(x, G, D, D_optimizer, criterion, f_divergence):
     #=======================Train the discriminator=======================#
     D.zero_grad()
 
@@ -20,7 +19,12 @@ def D_train(x, G, D, D_optimizer, criterion):
     x_real, y_real = x_real.to(device), y_real.to(device)
 
     D_output = D(x_real)
-    D_real_loss = criterion(D_output, y_real)
+
+    if f_divergence == 0: # BCE Loss
+        D_real_loss = criterion(D_output, y_real) 
+    elif f_divergence == 1: # Regular GAN
+        D_real_loss = GAN_loss(D_output)
+
     D_real_score = D_output
 
     # train discriminator on facke
@@ -29,7 +33,10 @@ def D_train(x, G, D, D_optimizer, criterion):
 
     D_output =  D(x_fake)
     
-    D_fake_loss = criterion(D_output, y_fake)
+    if f_divergence == 0: # BCE Loss
+        D_fake_loss = criterion(D_output, y_fake) 
+    elif f_divergence == 1: # Regular GAN
+        D_fake_loss = GAN_loss(D_output)
     D_fake_score = D_output
 
     # gradient backprop & optimize ONLY D's parameters
@@ -41,7 +48,7 @@ def D_train(x, G, D, D_optimizer, criterion):
     return  D_loss.data.item()
 
 
-def G_train(x, G, D, G_optimizer, criterion):
+def G_train(x, G, D, G_optimizer, criterion, f_divergence):
     #=======================Train the generator=======================#
     G.zero_grad()
 
@@ -50,15 +57,19 @@ def G_train(x, G, D, G_optimizer, criterion):
                  
     G_output = G(z)
     D_output = D(G_output)
-    G_loss = criterion(D_output, y)
+
+    if f_divergence == 0: # BCE Loss
+        G_loss = criterion(D_output, y)
+    elif f_divergence == 1: # Regular GAN
+        G_loss = GAN_loss_conjugate_generator(D_output)
+    
+    
     print(f"G_loss = {G_loss}")
     # gradient backprop & optimize ONLY G's parameters
     G_loss.backward()
     G_optimizer.step()
         
     return G_loss.data.item()
-
-
 
 def save_models(G, D, folder):
     torch.save(G.state_dict(), os.path.join(folder,'G.pth'))
@@ -82,3 +93,12 @@ def load_discriminator(D, folder):
         ckpt = torch.load(os.path.join(folder,'D.pth'), map_location=torch.device('cpu'))
     D.load_state_dict({k.replace('module.', ''): v for k, v in ckpt.items()})
     return D
+
+def GAN_loss(output): # The minus is because we do a gradient ascending
+    return torch.mean(-torch.log(output))
+
+def GAN_loss_conjugate(output):
+    return torch.mean(-torch.log(1 - output))
+
+def GAN_loss_conjugate_generator(output): # I created a new function just because here we do a gradient descent
+    return torch.mean(torch.log(1 - output))

@@ -11,6 +11,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate Normalizing Flow.')
     parser.add_argument("--batch_size", type=int, default=2048,
                       help="The batch size to use for training.")
+    parser.add_argument("--sample_size", type=int, default=10000,
+                      help="The batch size to use for training.")
     args = parser.parse_args()
 
     # Check if GPU is available
@@ -40,12 +42,12 @@ if __name__ == '__main__':
 
     n_samples = 0
     with torch.no_grad():
-        while n_samples<10000:
+        while n_samples<args.sample_size:
             z = torch.randn(args.batch_size, 100).to(device)
             x = model(z)
             x = x.reshape(args.batch_size, 28, 28)
             for k in range(x.shape[0]):
-                if n_samples<10000:
+                if n_samples<args.sample_size:
                     torchvision.utils.save_image(x[k:k+1], os.path.join('samples', f'{n_samples}.png'))         
                     n_samples += 1
 
