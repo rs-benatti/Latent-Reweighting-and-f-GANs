@@ -74,19 +74,22 @@ def main(epochs = 100, lr = 0.0002, batch_size = 64, mnist_size = 0, f_divergenc
     D_optimizer = optim.Adam(D.parameters(), lr = lr, betas=(0.5, 0.999))
 
     print('Start Training :')
-    
+    G_loss_history = []
+    D_loss_history = []
     n_epoch = epochs
     for epoch in trange(1, n_epoch+1, leave=True):           
         for batch_idx, (x, _) in enumerate(train_loader):
             x = x.view(-1, mnist_dim)
-            D_train(x, G, D, D_optimizer, criterion, f_divergence)
-            G_train(x, G, D, G_optimizer, criterion, f_divergence)
-
-        if epoch % 10 == 0:
+            D_loss = D_train(x, G, D, D_optimizer, criterion, f_divergence)
+            G_loss = G_train(x, G, D, G_optimizer, criterion, f_divergence)
+            D_loss_history.append(D_loss)
+            G_loss_history.append(G_loss)
+        
+        if epoch % epochs == 0:
             save_models(G, D, 'checkpoints')
     
     print('Training done')
-    return G, D        
+    return G, D, G_loss_history, D_loss_history        
 
 
 if __name__ == '__main__':

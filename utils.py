@@ -23,7 +23,8 @@ def D_train(x, G, D, D_optimizer, criterion, f_divergence):
     if f_divergence == 0: # BCE Loss
         D_real_loss = criterion(D_output, y_real) 
     elif f_divergence == 1: # Regular GAN
-        D_real_loss = GAN_loss(D_output)
+        D_real_loss = -GAN_loss(D_output)
+        D_real_loss.backward(retain_graph=True)
 
     D_real_score = D_output
 
@@ -36,13 +37,17 @@ def D_train(x, G, D, D_optimizer, criterion, f_divergence):
     if f_divergence == 0: # BCE Loss
         D_fake_loss = criterion(D_output, y_fake) 
     elif f_divergence == 1: # Regular GAN
-        D_fake_loss = GAN_loss(D_output)
+        D_fake_loss = -GAN_loss_conjugate(D_output)
+        D_fake_loss.backward()
     D_fake_score = D_output
 
     # gradient backprop & optimize ONLY D's parameters
-    D_loss = D_real_loss + D_fake_loss
-    print(f"D_loss = {D_loss}")
-    D_loss.backward()
+    if f_divergence == 0: # BCE Loss
+        D_loss = D_real_loss + D_fake_loss
+        D_loss.backward()
+    else:
+        D_loss = -(D_real_loss + D_fake_loss)
+    
     D_optimizer.step()
         
     return  D_loss.data.item()
@@ -61,10 +66,10 @@ def G_train(x, G, D, G_optimizer, criterion, f_divergence):
     if f_divergence == 0: # BCE Loss
         G_loss = criterion(D_output, y)
     elif f_divergence == 1: # Regular GAN
-        G_loss = GAN_loss_conjugate_generator(D_output)
+        G_loss = GAN_loss_conjugate(D_output)
     
     
-    print(f"G_loss = {G_loss}")
+    #print(f"G_loss = {G_loss}")
     # gradient backprop & optimize ONLY G's parameters
     G_loss.backward()
     G_optimizer.step()
@@ -95,10 +100,49 @@ def load_discriminator(D, folder):
     return D
 
 def GAN_loss(output): # The minus is because we do a gradient ascending
-    return torch.mean(-torch.log(output))
+    return torch.mean(-torch.log(1.0+torch.exp(-output)))
 
 def GAN_loss_conjugate(output):
-    return torch.mean(-torch.log(1 - output))
+    return torch.mean(torch.log(1.0-torch.exp(-torch.log(1.0+torch.exp(-output)))))
 
-def GAN_loss_conjugate_generator(output): # I created a new function just because here we do a gradient descent
-    return torch.mean(torch.log(1 - output))
+def total_varation_loss(output):
+    return 0.5 * torch.tanh(output) 
+
+def total_variation_loss_conjugate(output):
+    return 0.5 * torch.tanh(output) 
+
+def KL_loss(output):
+    return output
+
+def KL_loss_conjugate(output):
+    return torch.exp(output - 1)
+
+def reverse_KL_loss(output):
+    return -torch.exp(output)
+
+def reverse_KL_loss_conjugate(output):
+    return -1 - torch.log(torch.exp(output))
+
+def pearson_chi_loss(output):
+    return output
+
+def pearson_chi_loss_conjugate(output):
+    return 0.25 * output**2 + output
+
+def neyman_chi_loss(output):
+    return 1 - torch.exp(output)
+
+def neyman_chi_loss_conjugate(output):
+    return 2 - 2 * (1 - (1 - torch.exp(output)))**2
+
+def squared_hellinger_loss(output):
+    return 1 - torch.exp(output)
+
+def squared_hellinger_loss_conjugate(output):
+    return (1 - torch.exp(output))/ (1 - (1 - torch.exp(output)))
+
+def jeffrey_loss(output):
+    return output
+
+def jeffrey_loss_conjugate(output):
+    pass # Idk how to implement the jeffrey conjugate
