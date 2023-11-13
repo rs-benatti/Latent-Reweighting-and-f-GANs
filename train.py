@@ -98,7 +98,7 @@ if __name__ == '__main__':
     n_epoch = args.epochs
     for epoch in trange(1, n_epoch+1, leave=True):           
         for batch_idx, (x, _) in enumerate(train_loader):
-            x = x.view(-1, mnist_dim).to('cpu')
+            x = x.view(-1, mnist_dim).to(device)
             D_train(x, G, D, D_optimizer, criterion)
             G_train(x, G, D, G_optimizer, criterion)
 
