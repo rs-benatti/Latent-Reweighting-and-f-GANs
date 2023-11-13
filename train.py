@@ -21,6 +21,9 @@ if __name__ == '__main__':
                         help="Size of mini-batches for SGD")
     parser.add_argument("--mnist_size", type=int, default=10000,
                         help="Size of mini-batches for SGD")
+    parser.add_argument("--mnist_size", type=int, default=0, 
+                        help="Size of mini-batches for SGD")
+
 
 
     args = parser.parse_args()

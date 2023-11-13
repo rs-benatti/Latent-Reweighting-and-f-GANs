@@ -26,14 +26,17 @@ class Discriminator(nn.Module):
         self.fc3 = nn.Linear(self.fc2.out_features, self.fc2.out_features//2)
         self.fc4 = nn.Linear(self.fc3.out_features, 1)
 
+
         #Dropout layers
         self.dropout1 = nn.Dropout(0.3)
         self.dropout2 = nn.Dropout(0.3)
         self.dropout3 = nn.Dropout(0.3)
 
+
     # forward method
     def forward(self, x):
         x = F.leaky_relu(self.fc1(x), 0.2)
+
         x = self.dropout1(x)
 
         x = F.leaky_relu(self.fc2(x), 0.2)
@@ -120,3 +123,8 @@ def train_weight_network(real_data, G, D, w_net, w_optimizer, D_optimizer, crite
     w_optimizer.zero_grad()
     loss_w.backward()
     w_optimizer.step()
+
+        x = F.leaky_relu(self.fc2(x), 0.2)
+        x = F.leaky_relu(self.fc3(x), 0.2)
+        return torch.sigmoid(self.fc4(x))
+
