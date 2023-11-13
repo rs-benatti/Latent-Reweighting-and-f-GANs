@@ -47,8 +47,8 @@ class Discriminator(nn.Module):
 class WeightNetwork(nn.Module):
     def __init__(self):
         super(WeightNetwork, self).__init__()
-        # Define the architecture of the weight network here
-        self.fc1 = nn.Linear(100, 128)  # Assuming the latent vector size is 100
+        # Architecture of the weight network 
+        self.fc1 = nn.Linear(100, 128)  # latent vector size is 100
         self.fc2 = nn.Linear(128, 64)
         self.fc3 = nn.Linear(64, 1)  # Output a single weight value
 
@@ -66,10 +66,10 @@ def gradient_penalty(discriminator, real_data, fake_data):
     interpolated = alpha * real_data + (1 - alpha) * fake_data
     interpolated.requires_grad_(True)
 
-    # Calcul des prédictions du discriminateur
+    # discriminator preductions
     interpolated_preds = discriminator(interpolated)
 
-    # Calcul des gradients
+    # gradients
     gradients = torch.autograd.grad(
         outputs=interpolated_preds,
         inputs=interpolated,
@@ -79,7 +79,7 @@ def gradient_penalty(discriminator, real_data, fake_data):
         only_inputs=True,
     )[0]
 
-    # Calcul de la pénalité de gradient
+    # gradient penalty computing
     gradients = gradients.view(batch_size, -1)
     gradients_norm = torch.sqrt(torch.sum(gradients ** 2, dim=1) + 1e-12)
     gradient_penalty = torch.mean((gradients_norm - 1) ** 2)
