@@ -79,12 +79,12 @@ if __name__ == '__main__':
     # define loss
     criterion = nn.BCELoss()
 
-    # Initialisation du réseau de poids d'importance et de son optimiseur
+    # Initialisation of weights and optimizer
     w_net = WeightNetwork().to(device)
     w_optimizer = optim.Adam(w_net.parameters(), lr=args.lr)
 
     # Hyperparamètres pour l'entraînement de w_ϕ
-    lambda1, lambda2, m, nd= 10, 10, 1, 1  # Ces valeurs doivent être ajustées selon vos besoins
+    lambda1, lambda2, m, nd= 10, 10, 1, 1  # values to be tunned !!!!
 
     # define optimizers
     G_optimizer = optim.Adam(G.parameters(), lr = args.lr, betas=(0.5, 0.999))
@@ -100,7 +100,6 @@ if __name__ == '__main__':
             G_train(x, G, D, G_optimizer, criterion)
 
             # Entraînement du réseau de poids d'importance w_ϕ
-            # Cette fonction doit être définie pour intégrer l'algorithme de formation de w_ϕ
             train_weight_network(x, G, D, w_net, w_optimizer, D_optimizer, criterion, lambda1, lambda2, m)
 
         if epoch % 10 == 0:
