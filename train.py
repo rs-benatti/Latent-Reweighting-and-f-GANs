@@ -7,20 +7,23 @@ import torch.nn as nn
 import torch.optim as optim
 
 
-from model import Generator, Discriminator
+from model import Generator, Discriminator, WeightNetwork, train_weight_network
 from utils import D_train, G_train, save_models
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train Normalizing Flow.')
-    parser.add_argument("--epochs", type=int, default=100,
+    parser.add_argument("--epochs", type=int, default=400,
                         help="Number of epochs for training.")
-    parser.add_argument("--lr", type=float, default=0.002,
+    parser.add_argument("--lr", type=float, default=0.0002,
                       help="The learning rate to use for training.")
-    parser.add_argument("--batch_size", type=int, default=64, 
+    parser.add_argument("--batch_size", type=int, default=32,
+                        help="Size of mini-batches for SGD")
+    parser.add_argument("--mnist_size", type=int, default=10000,
                         help="Size of mini-batches for SGD")
     parser.add_argument("--mnist_size", type=int, default=0, 
                         help="Size of mini-batches for SGD")
+
 
 
     args = parser.parse_args()
@@ -77,7 +80,14 @@ if __name__ == '__main__':
 
 
     # define loss
-    criterion = nn.BCELoss() 
+    criterion = nn.BCELoss()
+
+    # Initialisation of weights and optimizer
+    w_net = WeightNetwork().to(device)
+    w_optimizer = optim.Adam(w_net.parameters(), lr=args.lr)
+
+    # Hyperparamètres pour l'entraînement de w_ϕ
+    lambda1, lambda2, m, nd= 10, 10, 1, 1  # values to be tunned !!!!
 
     # define optimizers
     G_optimizer = optim.Adam(G.parameters(), lr = args.lr, betas=(0.5, 0.999))
@@ -88,13 +98,15 @@ if __name__ == '__main__':
     n_epoch = args.epochs
     for epoch in trange(1, n_epoch+1, leave=True):           
         for batch_idx, (x, _) in enumerate(train_loader):
-            x = x.view(-1, mnist_dim)
+            x = x.view(-1, mnist_dim).to('cpu')
             D_train(x, G, D, D_optimizer, criterion)
             G_train(x, G, D, G_optimizer, criterion)
+
+            # Entraînement du réseau de poids d'importance w_ϕ
+            train_weight_network(x, G, D, w_net, w_optimizer, D_optimizer, criterion, lambda1, lambda2, m)
 
         if epoch % 10 == 0:
             save_models(G, D, 'checkpoints')
                 
     print('Training done')
-
-        
+    
