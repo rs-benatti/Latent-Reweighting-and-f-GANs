@@ -65,7 +65,7 @@ def gradient_penalty(discriminator, real_data, fake_data):
 
     # Génération de points interpolés
     alpha = torch.rand(batch_size, 1)
-    alpha = alpha.expand_as(real_data).to('cpu')
+    alpha = alpha.expand_as(real_data).to(device)
     interpolated = alpha * real_data + (1 - alpha) * fake_data
     interpolated.requires_grad_(True)
 
@@ -76,7 +76,7 @@ def gradient_penalty(discriminator, real_data, fake_data):
     gradients = torch.autograd.grad(
         outputs=interpolated_preds,
         inputs=interpolated,
-        grad_outputs=torch.ones(interpolated_preds.size()).to('cpu'),
+        grad_outputs=torch.ones(interpolated_preds.size()).to(device),
         create_graph=True,
         retain_graph=True,
         only_inputs=True,
@@ -94,11 +94,11 @@ def train_weight_network(real_data, G, D, w_net, w_optimizer, D_optimizer, crite
     D.train()
 
     batch_size = real_data.size(0)
-    real_data = real_data.view(batch_size, -1).to('cpu')
+    real_data = real_data.view(batch_size, -1).to(device)
 
     # Update Discriminator Dα
     for _ in range(nd):  # nd is the number of D updates per w_net update
-        z = torch.randn(batch_size, 100).to('cpu')
+        z = torch.randn(batch_size, 100).to(device)
         w_net_output = w_net(z)
         real_output = D(real_data)
         fake_data = G(z)
@@ -112,7 +112,7 @@ def train_weight_network(real_data, G, D, w_net, w_optimizer, D_optimizer, crite
         D_optimizer.step()
 
     # Update Weight Network w_ϕ
-    z = torch.randn(batch_size, 100).to('cpu')
+    z = torch.randn(batch_size, 100).to(device)
     w_net_output = w_net(z)
     fake_data = G(z)
     fake_output = D(fake_data)
@@ -123,8 +123,3 @@ def train_weight_network(real_data, G, D, w_net, w_optimizer, D_optimizer, crite
     w_optimizer.zero_grad()
     loss_w.backward()
     w_optimizer.step()
-
-        x = F.leaky_relu(self.fc2(x), 0.2)
-        x = F.leaky_relu(self.fc3(x), 0.2)
-        return torch.sigmoid(self.fc4(x))
-
