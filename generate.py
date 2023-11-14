@@ -13,7 +13,19 @@ if __name__ == '__main__':
                       help="The batch size to use for training.")
     parser.add_argument("--sample_size", type=int, default=10000,
                       help="The batch size to use for training.")
+    parser.add_argument("--divergence", type=int, default=0,
+                      help="The divergence used.")
     args = parser.parse_args()
+
+    divergences_dict = {
+        0: "BCELoss",
+        1: "GAN",
+        2: "KL",
+        3: "ReverseKL",
+        4: "Pearson",
+        5: "Hellinger",
+        6: "Jensen_Shannon",
+    }
 
     # Check if GPU is available
     if torch.cuda.is_available():
@@ -29,16 +41,19 @@ if __name__ == '__main__':
     mnist_dim = 784
 
     model = Generator(g_output_dim = mnist_dim).to(device)
-    model = load_model(model, 'checkpoints')
+    model = load_model(model, 'checkpoints', args.divergence)
     model = torch.nn.DataParallel(model).to(device)
     model.eval()
 
     print('Model loaded.')
 
-
+    if args.divergence == 0:
+        dirname = 'samples'
+    else:
+        dirname = 'divergence_samples/samples' + divergences_dict[args.divergence]
 
     print('Start Generating')
-    os.makedirs('samples', exist_ok=True)
+    os.makedirs(dirname, exist_ok=True)
 
     n_samples = 0
     with torch.no_grad():
@@ -48,7 +63,7 @@ if __name__ == '__main__':
             x = x.reshape(args.batch_size, 28, 28)
             for k in range(x.shape[0]):
                 if n_samples<args.sample_size:
-                    torchvision.utils.save_image(x[k:k+1], os.path.join('samples', f'{n_samples}.png'))         
+                    torchvision.utils.save_image(x[k:k+1], os.path.join(dirname, f'{n_samples}.png'))         
                     n_samples += 1
 
 

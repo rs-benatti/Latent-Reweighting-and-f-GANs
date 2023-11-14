@@ -21,10 +21,25 @@ def D_train(x, G, D, D_optimizer, criterion, f_divergence):
     D_output = D(x_real)
 
     if f_divergence == 0: # BCE Loss
-        D_real_loss = criterion(D_output, y_real) 
+        D_real_loss = criterion(torch.sigmoid(D_output), y_real) 
     elif f_divergence == 1: # Regular GAN
         D_real_loss = -GAN_loss(D_output)
-        D_real_loss.backward(retain_graph=True)
+        D_real_loss.backward()
+    elif f_divergence == 2: # Regular GAN
+        D_real_loss = -KL_loss(D_output)
+        D_real_loss.backward()
+    elif f_divergence == 3: # Regular GAN
+        D_real_loss = -reverse_KL_loss(D_output)
+        D_real_loss.backward()
+    elif f_divergence == 4: # Pearson 
+        D_real_loss = -pearson_chi_loss(D_output)
+        D_real_loss.backward()
+    elif f_divergence == 5: # Squared Hellinger
+        D_real_loss = -squared_hellinger_loss(D_output)
+        D_real_loss.backward()
+    elif f_divergence == 6: # Jensen Shannon
+        D_real_loss = -jensen_shannon(D_output)
+        D_real_loss.backward()
 
     D_real_score = D_output
 
@@ -35,20 +50,40 @@ def D_train(x, G, D, D_optimizer, criterion, f_divergence):
     D_output =  D(x_fake)
     
     if f_divergence == 0: # BCE Loss
-        D_fake_loss = criterion(D_output, y_fake) 
+        D_fake_loss = criterion(torch.sigmoid(D_output), y_fake) 
     elif f_divergence == 1: # Regular GAN
         D_fake_loss = -GAN_loss_conjugate(D_output)
         D_fake_loss.backward()
+        D_optimizer.step()
+    elif f_divergence == 2: # Regular GAN
+        D_fake_loss = -KL_loss_conjugate(D_output)
+        D_fake_loss.backward()
+        D_optimizer.step()
+    elif f_divergence == 3: # Regular GAN
+        D_fake_loss = -reverse_KL_loss_conjugate(D_output)
+        D_fake_loss.backward()
+        D_optimizer.step()
+    elif f_divergence == 4: # Pearson 
+        D_fake_loss = -pearson_chi_loss_conjugate(D_output)
+        D_fake_loss.backward()
+        D_optimizer.step()
+    elif f_divergence == 5: # Squared Hellinger
+        D_fake_loss = -squared_hellinger_loss_conjugate(D_output)
+        D_fake_loss.backward()
+        D_optimizer.step()
+    elif f_divergence == 6: # Jensen Shannon
+        D_fake_loss = -jensen_shannon_conjugate(D_output)
+        D_fake_loss.backward()
+        D_optimizer.step()
     D_fake_score = D_output
 
     # gradient backprop & optimize ONLY D's parameters
     if f_divergence == 0: # BCE Loss
         D_loss = D_real_loss + D_fake_loss
         D_loss.backward()
+        D_optimizer.step()
     else:
-        D_loss = -(D_real_loss + D_fake_loss)
-    
-    D_optimizer.step()
+        D_loss = D_real_loss + D_fake_loss
         
     return  D_loss.data.item()
 
@@ -64,9 +99,20 @@ def G_train(x, G, D, G_optimizer, criterion, f_divergence):
     D_output = D(G_output)
 
     if f_divergence == 0: # BCE Loss
-        G_loss = criterion(D_output, y)
+        G_loss = criterion(torch.sigmoid(D_output), y)
     elif f_divergence == 1: # Regular GAN
-        G_loss = GAN_loss_conjugate(D_output)
+        G_loss = -GAN_loss(D_output)
+    elif f_divergence == 2: # KL
+        G_loss = -KL_loss(D_output)
+    elif f_divergence == 3: # Reverse KL
+        G_loss = -reverse_KL_loss(D_output)
+    elif f_divergence == 4: # Pearson 
+        G_loss = -pearson_chi_loss(D_output)
+    elif f_divergence == 5: # Squared Hellinger
+        G_loss = -squared_hellinger_loss(D_output)
+    elif f_divergence == 6: # Jensen Shannon
+        G_loss = -jensen_shannon(D_output)
+    
     
     
     #print(f"G_loss = {G_loss}")
@@ -81,12 +127,34 @@ def save_models(G, D, folder):
     torch.save(D.state_dict(), os.path.join(folder,'D.pth'))
 
 
-def load_model(G, folder):
+def load_model(G, folder, f_divergence):
+    if f_divergence == 0: # BCE Loss
+        model = 'G.pth'
+        print(f"Used model: {model}")
+    elif f_divergence == 1: # Regular GAN
+        model = 'G_f_GAN.pth'
+        print(f"Used model: {model}")
+    elif f_divergence == 2: # KL
+        model = 'G_KL.pth'
+        print(f"Used model: {model}")
+    elif f_divergence == 3: # Reverse KL
+        model = 'G_reverse_KL.pth'
+        print(f"Used model: {model}")
+    elif f_divergence == 4: # Pearson 
+        model = 'G_pearson.pth'
+        print(f"Used model: {model}")
+    elif f_divergence == 5: # Squared Hellinger
+        model = 'G_hellinger.pth'
+        print(f"Used model: {model}")
+    elif f_divergence == 6: # Jensen Shannon
+        model = 'G_jensen_shannon.pth'
+        print(f"Used model: {model}")
+    
     # Check if GPU is available
     if torch.cuda.is_available():
-        ckpt = torch.load(os.path.join(folder,'G.pth'))
+        ckpt = torch.load(os.path.join(folder,model))
     else:
-        ckpt = torch.load(os.path.join(folder,'G.pth'), map_location=torch.device('cpu'))
+        ckpt = torch.load(os.path.join(folder,model), map_location=torch.device('cpu'))
     G.load_state_dict({k.replace('module.', ''): v for k, v in ckpt.items()})
     return G
 
@@ -105,44 +173,32 @@ def GAN_loss(output): # The minus is because we do a gradient ascending
 def GAN_loss_conjugate(output):
     return torch.mean(torch.log(1.0-torch.exp(-torch.log(1.0+torch.exp(-output)))))
 
-def total_varation_loss(output):
-    return 0.5 * torch.tanh(output) 
-
-def total_variation_loss_conjugate(output):
-    return 0.5 * torch.tanh(output) 
-
 def KL_loss(output):
-    return output
+    return torch.mean(output)
 
 def KL_loss_conjugate(output):
-    return torch.exp(output - 1)
+    return -torch.mean(torch.exp(output - 1))
 
 def reverse_KL_loss(output):
-    return -torch.exp(output)
+    return torch.mean(-torch.exp(-output))
 
 def reverse_KL_loss_conjugate(output):
-    return -1 - torch.log(torch.exp(output))
+    return -torch.mean(-1 - torch.log(torch.exp(-output)))
 
 def pearson_chi_loss(output):
-    return output
+    return torch.mean(output)
 
 def pearson_chi_loss_conjugate(output):
-    return 0.25 * output**2 + output
-
-def neyman_chi_loss(output):
-    return 1 - torch.exp(output)
-
-def neyman_chi_loss_conjugate(output):
-    return 2 - 2 * (1 - (1 - torch.exp(output)))**2
+    return -torch.mean(0.25 * output**2 + output)
 
 def squared_hellinger_loss(output):
-    return 1 - torch.exp(output)
+    return torch.mean(1 - torch.exp(-output))
 
 def squared_hellinger_loss_conjugate(output):
-    return (1 - torch.exp(output))/ (1 - (1 - torch.exp(output)))
+    return -torch.mean((1 - torch.exp(-output))/(1 - (1 - torch.exp(-output))))
 
-def jeffrey_loss(output):
-    return output
+def jensen_shannon(output):
+    return torch.mean(torch.log(torch.tensor(2.))-torch.log(1.0+torch.exp(-output)))
 
-def jeffrey_loss_conjugate(output):
-    pass # Idk how to implement the jeffrey conjugate
+def jensen_shannon_conjugate(output):
+    return -torch.mean(-torch.log(2 - torch.exp(torch.log(torch.tensor(2.))-torch.log(1.0+torch.exp(-output)))))
