@@ -22,7 +22,7 @@ def main(epochs = 100, lr = 0.0002, batch_size = 64, mnist_size = 0, f_divergenc
     }
 
     print(f"Used divergence: {divergences_dict[f_divergence]}")
-        # Check if GPU is available
+    # Check if GPU is available
     if torch.cuda.is_available():
         device = torch.device("cuda")
         print('GPU is available')
@@ -90,7 +90,6 @@ def main(epochs = 100, lr = 0.0002, batch_size = 64, mnist_size = 0, f_divergenc
             G_loss = G_train(x, G, D, G_optimizer, criterion, f_divergence)
             D_loss_history.append(D_loss)
             G_loss_history.append(G_loss)
-        
         if epoch % 10 == 0:
             generate(G)
             try:
