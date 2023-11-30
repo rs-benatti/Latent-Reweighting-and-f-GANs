@@ -7,9 +7,7 @@ Example:
   > python3 generate.py --bacth_size 64
 
 ## requirements.txt
-Among the good pratice of datascience, we encourage you to use conda or virtualenv to create python environment. 
-To test your code on our platform, you are required to update the *requirements.txt*, with the different librairies you might use. 
-When your code will be test, we will execute: 
+To make sure you have all packages installed you may use:
   > pip install -r requirements.txt
 
 
