@@ -1,5 +1,5 @@
 [![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-24ddc0f5d75046c5622901739e7c5dd533143b0c8e959d652212380cedb1ea36.svg)](https://classroom.github.com/a/Rk82RtjP)
-# DataLabAssignement2
+# Latent Reweighting and Variational Divergence Minimization in GANs
 
 ## generate.py
 Use the file *generate.py* to generate 10000 samples of MNIST in the folder samples. 
